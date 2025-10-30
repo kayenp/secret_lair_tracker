@@ -1,0 +1,16 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Secret lair tracker project",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch --env-file=.env server.js"
+  },
+  "author": "Ken Poon",
+  "license": "MIT",
+  "devDependencies": {
+    "express": "^5.1.0"
+  }
+}
