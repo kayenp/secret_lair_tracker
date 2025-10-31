@@ -19,13 +19,13 @@ const app = express();
 
 // Configuration object with your MSSQL details
 const config = {
-    user: DB_USER, // e.g., 'sa'
-    password: DB_PWD, // The password for your SQL user
+    user: 'vgn07yvm', // e.g., 'sa'
+    password: 'BVYNtavaEk', // The password for your SQL user
     server: 'localhost', // e.g., 'localhost' or 'SERVER\SQLEXPRESS'
-    database: DB_NAME, // The database you want to connect to
+    database: 'master', // The database you want to connect to
     options: {
         // May be required for local development or self-signed certs
-        trustedServerCertificate: true, 
+        //trustedServerCertificate: true, 
         // Set to true if connecting to Azure SQL Database
         encrypt: true,
 		trustServerCertificate: true 
