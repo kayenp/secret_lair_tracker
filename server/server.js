@@ -4,17 +4,23 @@ import path from 'path'
 import url from 'url'
 import { requestScryfall } from './scripts/main.js'
 import express from 'express'
-import { connectMssql } from './mssql.js'
+import sql from 'mssql'
+import { sqlConfig } from './sqlConfig.js'
 
 const PORT = process.env.PORT;
-const DB_USER = process.env.DB_USER;
-const DB_PWD = process.env.DB_PWD;
-const DB_NAME = process.env.DB_NAME;
 const __dirname = import.meta.dirname;
 const __prevDir = path.join(__dirname, '..');
 const __public = path.join(__prevDir, '/', 'public');
 const server = http.createServer((req, res) => {});
 const app = express();
+const sqlPool = new sql.ConnectionPool(sqlConfig);
+
+(async () => {
+    const pool = await sqlPool.connect();
+    app.locals.db = pool;
+    console.log(app.locals.db);
+    console.log('sql global pool successful')
+})()
 
 /*
 ====================
@@ -35,8 +41,7 @@ server.listen(PORT, () => {
 ====================
 */
 
-connectMssql();
-
+// connectMssql();
 
 /*
 ====================
@@ -85,6 +90,14 @@ app.post('/api', (req, res) => {
 	requestScryfall(req.body.set);
 	res.send({ "message": "Server received request" });
 })
+
+// Shutdown SQL connection when exiting server
+process.on('exit', (code) => {
+	console.log(app.locals.db)
+    sql.close();
+	console.log('sql global pool successfully shut down');
+    console.log(code)
+});
 
 /*
 ====================
