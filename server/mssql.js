@@ -24,7 +24,4 @@ import { sqlConfig } from './sqlConfig.js'
 
 // 
 
-process.on('exit', async () => {
-	await sql.close();
-	console.log('sql global pool successfully shut down');
-});
+

@@ -14,13 +14,15 @@ const __public = path.join(__prevDir, '/', 'public');
 const server = http.createServer((req, res) => {});
 const app = express();
 const sqlPool = new sql.ConnectionPool(sqlConfig);
+const pool = await sqlPool.connect();
 
-(async () => {
-    const pool = await sqlPool.connect();
-    app.locals.db = pool;
-    console.log(app.locals.db);
-    console.log('sql global pool successful')
-})()
+
+// (async () => {
+//     const pool = await sqlPool.connect();
+// 	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
+// 	console.log(resultSet.recordset)
+//     console.log('sql global pool connection successful')
+// })()
 
 /*
 ====================
@@ -49,6 +51,10 @@ server.listen(PORT, () => {
 ====================
 */
 
+app.use((req, res, next) => {
+	console.log(req.method, req.url);
+	next();
+})
 app.use(express.json());
 
 /*
@@ -78,6 +84,28 @@ app.get('/', (req, res) => {
 // API requests
 ====================
 */
+
+app.get('/api', async (req, res) => {
+	// const pool = await sqlPool.connect();
+	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
+	console.log(resultSet.recordset)
+	res.send(resultSet.recordset[0]);
+})
+
+app.post('/api', async (req, res) => {
+	const insertSet = await pool.request().query(`INSERT INTO TestTable (Name, ReleaseDate, Qty) VALUES ('Bill', '2025-11-01', '1')`);
+	res.send(insertSet);
+})
+
+app.delete('/api', async (req, res) => {
+	const deleteSet = await pool.request().query(`DELETE FROM TestTable WHERE NAME = 'Bill'`);
+	res.send(deleteSet);
+})
+
+app.patch('/api', async (req, res) => {
+	const updateSet = await pool.request().query(`UPDATE TestTable SET Name = 'John' WHERE Qty = 1`);
+	res.send(updateSet);
+})
 
 /*
 ====================
