@@ -5,13 +5,15 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node --watch --env-file=.env server.js"
   },
   "author": "Ken Poon",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.9.2",
     "express": "^5.1.0",
+    "patchright": "^1.56.1",
     "tedious": "^18.6.1"
   },
   "dependencies": {
