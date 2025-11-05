@@ -4,8 +4,8 @@ import path from 'path'
 import url from 'url'
 import { requestScryfall } from './scripts/main.js'
 import express from 'express'
-import sql from 'mssql'
-import { sqlConfig } from './sqlConfig.js'
+//import sql from 'mssql'
+//import { sqlConfig } from './sqlConfig.js'
 import { sldToArr } from './playwright-scripts/mtg_wiki.js'
 
 const PORT = process.env.PORT;
@@ -14,8 +14,8 @@ const __prevDir = path.join(__dirname, '..');
 const __public = path.join(__prevDir, '/', 'public');
 const server = http.createServer((req, res) => {});
 const app = express();
-const sqlPool = new sql.ConnectionPool(sqlConfig);
-const pool = await sqlPool.connect();
+//const sqlPool = new sql.ConnectionPool(sqlConfig);
+//const pool = await sqlPool.connect();
 
 sldToArr();
 
