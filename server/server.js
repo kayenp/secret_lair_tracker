@@ -4,9 +4,9 @@ import path from 'path'
 import url from 'url'
 import { requestScryfall } from './scripts/main.js'
 import express from 'express'
-//import sql from 'mssql'
-//import { sqlConfig } from './sqlConfig.js'
-import { sldToArr } from './playwright-scripts/mtg_wiki.js'
+import sql from 'mssql'
+import { sqlConfig } from './sqlConfig.js'
+import { scrapeSingleCardsSLD } from './playwright-scripts/mtg_wiki.js'
 
 const PORT = process.env.PORT;
 const __dirname = import.meta.dirname;
@@ -16,8 +16,6 @@ const server = http.createServer((req, res) => {});
 const app = express();
 //const sqlPool = new sql.ConnectionPool(sqlConfig);
 //const pool = await sqlPool.connect();
-
-sldToArr();
 
 // (async () => {
 //     const pool = await sqlPool.connect();
@@ -161,3 +159,5 @@ process.on('exit', (code) => {
 // }
 
 // testConnection();
+
+scrapeSingleCardsSLD();
