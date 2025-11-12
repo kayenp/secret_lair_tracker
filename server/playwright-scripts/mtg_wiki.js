@@ -1,9 +1,14 @@
 "use strict";
 
-import { chromium } from 'patchright';
-import { test, expect } from '@playwright/test';
+import { chromium } from 'patchright'
+import { test, expect } from '@playwright/test'
 import sql from 'mssql'
 import { sqlConfig } from '../sqlConfig.js'
+import { TYPES } from 'tedious'
+import { types } from 'util';
+import { TYPE } from 'tedious/lib/packet.js';
+
+
 
 /*
 ====================
@@ -19,8 +24,8 @@ SQL helper functions
 
 // Connects to new instance pool of TDS connections
 async function connectSql(config=sqlConfig) {
-	const sqlPool = new sql.ConnectionPool(config);
-	const pool = await sqlPool.connect();
+	const sql = new sql.ConnectionPool(config);
+	const pool = await sql.connect();
 	return pool.request();
 }
 
@@ -183,15 +188,59 @@ export async function scrapeScryfallSLD() {
 
 
 export async function scrapeSingleCardsSLD() {
-	console.log('checking scryfall...');
-	const page = await gotoPage('https://scryfall.com/sets/sld?as=grid&order=set', 'domcontentloaded');
-	const attribute = 'data-card-id';
-	const selector = `div[${attribute}]`; //`div[data-card-id]`
-	//const locArr = await page.locator(`${selector}`).all();
-	const query = `SELECT drop_name FROM missing_drops WHERE id =`;
-	const numRecords = await retrieveNumRecords('missing_drops');
-	const colVals = await retrieveColVals(numRecords, query);
-	await retrieveFromDb(page, colVals);
+	// console.log('checking scryfall...');
+	// const page = await gotoPage('https://scryfall.com/sets/sld?as=grid&order=set', 'domcontentloaded');
+	// const attribute = 'data-card-id';
+	// const selector = `div[${attribute}]`; //`div[data-card-id]`
+	// //const locArr = await page.locator(`${selector}`).all();
+	// const query = `SELECT drop_name FROM missing_drops WHERE id =`;
+	// const numRecords = await retrieveNumRecords('missing_drops');
+	// const colVals = await retrieveColVals(numRecords, query);
+	// await retrieveFromDb(page, colVals);
+	// console.log(colVals);
+ 
+	// const command = 'SELECT * FROM missing_drops_backup';
+	// const request = new Request(command, (err) => {
+	// 	if (err) {
+	// 		console.error('Request Error:', err);
+	// 	}
+	// });
+	// request.addParameter('number', TYPES.Int, 10);
+	//await request.addParameter('table', TYPES.VarChar, 'missing_drops_backup');
+	// console.log(request);
+	const sqlPool = new sql.ConnectionPool(sqlConfig);
+	const pool = await sqlPool.connect();
+	let request = pool.request();
 
-	console.log(colVals);
+	try {
+		const ps = new sql.PreparedStatement(pool);
+		ps.input('number', sql.Int);
+
+		await ps.prepare('Select top (@number) drop_name from missing_drops_backup');
+
+		const result = await ps.execute({ number: 20 });
+		console.log(result.recordset);
+		await ps.unprepare();
+	} catch (err) {
+		console.error('SQL operation failed', err);
+	}
+	
+	// ps.prepare('select top @number id from missing_drops_backup');
+	
+
+	// try {
+
+	// const query = 'SELECT TOP @number drop_name FROM missing_drops_backup';
+	// pool.request().add
+
+	// request.addParameter('number', TYPES.Int, 5);
+
+	// const result = await request.query(query);
+
+	// console.log(result.recordset);
+	// }
+	// catch (err) {
+	// 	console.error('Error', err);
+	// }
+
 }
