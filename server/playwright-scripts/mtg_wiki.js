@@ -7,6 +7,7 @@ import { sqlConfig } from '../sqlConfig.js'
 import { TYPES } from 'tedious'
 import { types } from 'util';
 import { TYPE } from 'tedious/lib/packet.js';
+import { error } from 'console';
 
 
 
@@ -24,8 +25,8 @@ SQL helper functions
 
 // Connects to new instance pool of TDS connections
 async function connectSql(config=sqlConfig) {
-	const sql = new sql.ConnectionPool(config);
-	const pool = await sql.connect();
+	const sqlPool = new sql.ConnectionPool(config);
+	const pool = await sqlPool.connect();
 	return pool.request();
 }
 
@@ -67,17 +68,41 @@ async function strToLink(string) {
 // Scrapes individual Scryfall IDs from SLD group pages and inserts into DB
 async function scryfallIdScrape(page, dbVal) {
 		console.log('Single card scraping beginning...');
+		// Creates new sql connection in preparation for database interaction
+		const sqlPool = new sql.ConnectionPool(sqlConfig);
+		const pool = await sqlPool.connect();
+		// Creates an array populated with elements with the attribute data-card-id
 		const linkArr = await page.locator(`[data-card-id]`).all();
-		for (let i = 0; i < 5; i++) {
+		// Loops each element retrieving the scryfall ID and card name
+		for (let i = 0; i < linkArr.length; i++) {
 			console.log(linkArr[i]);
 			let scryfallId = await linkArr[i].getAttribute(`data-card-id`);
-			let cardName = await linkArr[i].locator(`.card-grid-item-invisible-label`).innerText();
+			// Small try...catch block to catch locator errors and continue running function
+			try {	
+				var cardName = await linkArr[i].locator(`.card-grid-item-invisible-label`).innerText();
+			} catch (err) {
+				console.log(`Error: ${err}`);
+			};
 			console.log(cardName, scryfallId);
-			console.log(`INSERT INTO missing_drops_singleCardData (Card_Name, Drop_Name, Scryfall_ID) VALUES ('${cardName.replace(/'/g, "''")}', '${dbVal.replace(/'/g, "''")}', '${scryfallId}')`);
-			await queryDb(await connectSql(), `INSERT INTO missing_drops_singleCardData (Card_Name, Drop_Name, Scryfall_ID) VALUES ('${cardName.replace(/'/g, "''")}', '${dbVal.replace(/'/g, "''")}', '${scryfallId}')`);
-			await queryDb(await connectSql(), `DELETE FROM missing_drops WHERE drop_name = ${dbVal.replace(/'/g, "''")}`);
-		}
-		await page.goBack({ waitUntil: 'commit' });
+			// Creates prepared statements and performs database queries
+			try {
+				const ps = new sql.PreparedStatement(pool);
+				ps.input('Card_Name', sql.VarChar(255));
+				ps.input('Drop_Name', sql.VarChar(255));
+				ps.input('Scryfall_ID', sql.VarChar(255));
+				await ps.prepare("INSERT INTO missing_drops_singleCardData (Card_Name, Drop_Name, Scryfall_ID) VALUES (@Card_Name, @Drop_Name, @Scryfall_ID)");
+				await ps.execute({ 
+					Card_Name: cardName,
+					Drop_Name: dbVal,
+					Scryfall_ID: scryfallId
+				});
+				await ps.unprepare();
+			} catch (err) {
+				console.error('SQL operation failed', (err));
+			};
+		};
+		await page.goto('https://scryfall.com/sets/sld?as=grid&order=set');
+		await page.waitForLoadState(`domcontentloaded`);
 		console.log('previous page...');
 }
 
@@ -188,59 +213,31 @@ export async function scrapeScryfallSLD() {
 
 
 export async function scrapeSingleCardsSLD() {
-	// console.log('checking scryfall...');
-	// const page = await gotoPage('https://scryfall.com/sets/sld?as=grid&order=set', 'domcontentloaded');
-	// const attribute = 'data-card-id';
-	// const selector = `div[${attribute}]`; //`div[data-card-id]`
-	// //const locArr = await page.locator(`${selector}`).all();
-	// const query = `SELECT drop_name FROM missing_drops WHERE id =`;
-	// const numRecords = await retrieveNumRecords('missing_drops');
-	// const colVals = await retrieveColVals(numRecords, query);
-	// await retrieveFromDb(page, colVals);
-	// console.log(colVals);
+	console.log(sqlConfig);
+	console.log('checking scryfall...');
+	const page = await gotoPage('https://scryfall.com/sets/sld?as=grid&order=set', 'domcontentloaded');
+	const attribute = 'data-card-id';
+	const selector = `div[${attribute}]`; //`div[data-card-id]`
+	//const locArr = await page.locator(`${selector}`).all();
+	const query = `SELECT drop_name FROM missing_drops WHERE id =`;
+	const numRecords = await retrieveNumRecords('missing_drops');
+	const colVals = await retrieveColVals(numRecords, query);
+	await retrieveFromDb(page, colVals);
+	console.log(colVals);
  
-	// const command = 'SELECT * FROM missing_drops_backup';
-	// const request = new Request(command, (err) => {
-	// 	if (err) {
-	// 		console.error('Request Error:', err);
-	// 	}
-	// });
-	// request.addParameter('number', TYPES.Int, 10);
-	//await request.addParameter('table', TYPES.VarChar, 'missing_drops_backup');
-	// console.log(request);
-	const sqlPool = new sql.ConnectionPool(sqlConfig);
-	const pool = await sqlPool.connect();
-	let request = pool.request();
-
-	try {
-		const ps = new sql.PreparedStatement(pool);
-		ps.input('number', sql.Int);
-
-		await ps.prepare('Select top (@number) drop_name from missing_drops_backup');
-
-		const result = await ps.execute({ number: 20 });
-		console.log(result.recordset);
-		await ps.unprepare();
-	} catch (err) {
-		console.error('SQL operation failed', err);
-	}
-	
-	// ps.prepare('select top @number id from missing_drops_backup');
-	
-
-	// try {
-
-	// const query = 'SELECT TOP @number drop_name FROM missing_drops_backup';
-	// pool.request().add
-
-	// request.addParameter('number', TYPES.Int, 5);
-
-	// const result = await request.query(query);
-
-	// console.log(result.recordset);
-	// }
-	// catch (err) {
-	// 	console.error('Error', err);
-	// }
-
 }
+
+// Prepared statement syntax
+//===========================
+// const sqlPool = new sql.ConnectionPool(sqlConfig);
+// const pool = await sqlPool.connect();
+// try {
+// 	const ps = new sql.PreparedStatement(pool);
+// 	ps.input('number', sql.Int);
+// 	await ps.prepare('Select TOP @number FROM missing_drops_backup');
+// 	const result = await ps.execute({ number: 3 });
+// 	console.log(result.recordset);
+// 	await ps.unprepare();
+// } catch (err) {
+// 	console.error('SQL operation failed', err);
+// }
