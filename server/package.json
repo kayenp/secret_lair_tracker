@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "node --watch --env-file=.env server.js"
+    "dev": "node --env-file=.env server.js"
   },
   "author": "Ken Poon",
   "license": "MIT",

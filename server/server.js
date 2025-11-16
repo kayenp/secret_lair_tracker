@@ -6,7 +6,7 @@ import { requestScryfall } from './scripts/main.js'
 import express from 'express'
 import sql from 'mssql'
 import { sqlConfig } from './sqlConfig.js'
-import { scrapeSingleCardsSLD } from './playwright-scripts/mtg_wiki.js'
+import { addNameToTable } from './playwright-scripts/mtg_wiki.js'
 
 const PORT = process.env.PORT;
 const __dirname = import.meta.dirname;
@@ -119,6 +119,15 @@ app.post('/api', (req, res) => {
 	res.send({ "message": "Server received request" });
 })
 
+
+/*
+====================
+// Web scraping functions
+====================
+*/
+
+addNameToTable();
+
 // Shutdown SQL connection when exiting server
 process.on('exit', (code) => {
 	console.log(app.locals.db)
@@ -160,4 +169,3 @@ process.on('exit', (code) => {
 
 // testConnection();
 
-scrapeSingleCardsSLD();

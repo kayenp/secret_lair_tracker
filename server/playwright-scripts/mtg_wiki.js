@@ -4,44 +4,37 @@ import { chromium } from 'patchright'
 import { test, expect } from '@playwright/test'
 import sql from 'mssql'
 import { sqlConfig } from '../sqlConfig.js'
-import { TYPES } from 'tedious'
-import { types } from 'util';
-import { TYPE } from 'tedious/lib/packet.js';
-import { error } from 'console';
-
-
 
 /*
-====================
-Global Var
-====================
-*/
-
-/*
-====================
+================================================================================
 SQL helper functions
-====================
+================================================================================
 */
 
 // Connects to new instance pool of TDS connections
+//
 async function connectSql(config=sqlConfig) {
 	const sqlPool = new sql.ConnectionPool(config);
-	const pool = await sqlPool.connect();
-	return pool.request();
+	let pool = await sqlPool.connect();
+	return pool;
 }
 
 // Sends command to SQL Server
-async function queryDb(reqObj, sqlQuery) {
-	return await reqObj.query(`${sqlQuery}`)
+//
+async function queryDb(connection, sqlQuery) {
+	const request = connection.request();
+	return await request.query(`${sqlQuery}`)
 }
 
 /*
-====================
+================================================================================
 Browser helper functions
-====================
+================================================================================
 */
 
+
 // Starts Chrome
+//
 async function startBrowser() {
 	const browser = await chromium.launch({
 		channel: "chrome",
@@ -52,7 +45,18 @@ async function startBrowser() {
 	return page;
 }
 
+// Adds API call delay
+//
+async function addDelay(ms) {
+	return await new Promise((resolve, rejeft) => {
+		setTimeout(() => {
+			resolve(console.log(`Added delay for ${ms}ms.`));
+		}, ms)
+	})
+}
+
 // Playwright goes to URL
+//
 async function gotoPage(url, loadstate) {
 	const page = await startBrowser();
 	await page.goto(`${url}`);
@@ -61,22 +65,27 @@ async function gotoPage(url, loadstate) {
 }
 
 // Converts SQL Server DB string title to HTML anchor link
+//
 async function strToLink(string) {
 	return string.toLowerCase().trim().replace(/[&?:'"!,*]/g, '').replaceAll(' ', '-');
 }
 
 // Scrapes individual Scryfall IDs from SLD group pages and inserts into DB
+//
 async function scryfallIdScrape(page, dbVal) {
 		console.log('Single card scraping beginning...');
 		// Creates new sql connection in preparation for database interaction
 		const sqlPool = new sql.ConnectionPool(sqlConfig);
 		const pool = await sqlPool.connect();
+
 		// Creates an array populated with elements with the attribute data-card-id
 		const linkArr = await page.locator(`[data-card-id]`).all();
+		
 		// Loops each element retrieving the scryfall ID and card name
 		for (let i = 0; i < linkArr.length; i++) {
 			console.log(linkArr[i]);
 			let scryfallId = await linkArr[i].getAttribute(`data-card-id`);
+			
 			// Small try...catch block to catch locator errors and continue running function
 			try {	
 				var cardName = await linkArr[i].locator(`.card-grid-item-invisible-label`).innerText();
@@ -84,6 +93,7 @@ async function scryfallIdScrape(page, dbVal) {
 				console.log(`Error: ${err}`);
 			};
 			console.log(cardName, scryfallId);
+			
 			// Creates prepared statements and performs database queries
 			try {
 				const ps = new sql.PreparedStatement(pool);
@@ -101,20 +111,41 @@ async function scryfallIdScrape(page, dbVal) {
 				console.error('SQL operation failed', (err));
 			};
 		};
+
+		// Returns to previous page
 		await page.goto('https://scryfall.com/sets/sld?as=grid&order=set');
 		await page.waitForLoadState(`domcontentloaded`);
 		console.log('previous page...');
 }
 
+// Prepared statement function
+//
+async function createPreparedStatement(pool, query, paramObj, ...inputStatements) {
+	try {
+		const ps = new sql.PreparedStatement(pool);
+		for (let i = 0; i < inputStatements.length; i++) {
+			(() => {
+				inputStatements[i];
+			})(); // does this work???
+		};
+		await ps.prepare(query);
+		await ps.execute(paramObj);
+		await ps.unprepare();
+	} catch (err) {
+		console.error('Error during prepared statement', err);
+	};
+};
+
 // Loops through SLD DB titles and runs scryfallIDScrape() on each title
+//========================================================================
 async function retrieveFromDb(page, colVals) {
 	for (let i = 0; i < colVals.length; i++) {	
 		try {
-			const dbVal = colVals[i].drop_name.trim();
+			const dbVal = colVals[i].drop_name;
 			console.log(dbVal);
 			const pattern = new RegExp(`${dbVal}`, 'i');
-			const locator = page.locator(`.card-grid-header-content`);
-			await locator.getByText(pattern).getByRole('link', { name: 'cards' }).click();
+			const classLocator = page.locator(`span[class="card-grid-header-content"]`);
+			await classLocator.filter({ hasText: pattern }).getByRole('link', { name: 'cards' }).click();
 			await page.waitForLoadState('domcontentloaded');
 			console.log("SUCCESS");
 			await scryfallIdScrape(page, dbVal);
@@ -126,23 +157,77 @@ async function retrieveFromDb(page, colVals) {
 	console.log('Scrape Done.');
 }
 
+// Loops through scryfall ID to retrieve card name from scryfall API
+//========================================================================
+async function getCardNameFromApi(idArr) {
+	const sqlPool = new sql.ConnectionPool(sqlConfig);
+	const pool = await sqlPool.connect();
+	const request = pool.request();
+	console.log('getCardNameFromApi running...');
+	for (let i = 0; i < idArr.length; i++) { //<--- change back to idArr.length
+		console.log(`https://api.scryfall.com/cards/${idArr[i]}`)
+		const res = await fetch(`https://api.scryfall.com/cards/${idArr[i]}`);
+		const data = await res.json();
+		console.log(data.collector_number); // data.name, .tcgplayer_id, .flavor_name, .collector_number, .released_at
+		try {
+			const ps = new sql.PreparedStatement(pool);
+			ps.input('card_name', sql.VarChar(255));
+			ps.input('tcgplayer_id', sql.Int);
+			ps.input('flavor_name', sql.VarChar(255));
+			ps.input('collector_number', sql.VarChar(255));
+			ps.input('release_date', sql.Date);
+			ps.input('scryfall_id', sql.VarChar(255));
+			await ps
+				.prepare(
+					`UPDATE singleCardData
+						SET card_name = @card_name,
+							tcgplayer_id = @tcgplayer_id,
+							flavor_name = @flavor_name,
+							collector_number = @collector_number,
+							release_date = @release_date
+							WHERE scryfall_id = @scryfall_id`
+				);
+			await ps.execute({
+				card_name: data.name,
+				tcgplayer_id: data.tcgplayer_etched_id,
+				flavor_name: data.flavor_name,
+				collector_number: data.collector_number,
+				release_date: data.released_at,
+				scryfall_id: data.id
+			});
+			await ps.unprepare();
+		} catch (err) {
+			console.error('Prepared statement error', err);
+		}
+		await addDelay(1000);
+	};
+	console.log('Succcessful update.');
+}
+
 // Returns the total number of records from a table
-async function retrieveNumRecords(table) {
-	const numRecordsObj = await queryDb(await connectSql(), `SELECT MAX (id) FROM ${table}`);
-	return numRecordsObj.recordset[0][''];
+//========================================================================
+async function getNumRecords(query) {
+	console.log('Getting number of records from database...')
+	const numRecordsObj = await queryDb(await connectSql(), query);
+	console.log(`Records count complete. Length = ${numRecordsObj.recordset.length}`);
+	return numRecordsObj.recordset.length;
 }
 
 // Loops through table column and pushes result to an array
-async function retrieveColVals(maxIterations, query) {
+//========================================================================
+async function getColVals(maxIterations, query) {
+	console.log('Getting column values...');
 	let dbResult = [];
-	for (let i = 0; i < maxIterations; i++) {
-		let result = await queryDb(await connectSql(), `${query} ${i+1}`);
-		dbResult.push(result.recordset[0]);
+	for (let i = 0; i < maxIterations; i++) { // <--- change back to maxIterations
+		let result = await queryDb(await connectSql(), `${query}`);
+		console.log(result.recordset[i]["scryfall_id"]);
+		dbResult.push(result.recordset[i]["scryfall_id"]);
 	};
 	return dbResult;
 }
 
 // Enters the group page for that SLD <---- NEED TO COMPLETE
+//========================================================================
 async function openSldGroupPage(tableVals) {
 	for (let i = 0; i < tableVals.length; i++) {	
 		try {
@@ -156,6 +241,7 @@ async function openSldGroupPage(tableVals) {
 }
 
 // Scrapes SLD group headers from scryfall set:SLD page and performs DB query
+//========================================================================
 async function addToTable(locArr, query) {
 	for (let i = 0; i < locArr.length; i++) {
 		let headerVal = await locArr[i].innerText;
@@ -176,6 +262,8 @@ async function addToTable(locArr, query) {
 Exported functions
 ====================
 */
+
+//========================================================================
 export async function sldToArr() {
 	await gotoPage('https://mtg.wiki/page/Secret_Lair/Drop_Series', 'domcontentloaded')
 	const rowArr = await page.locator(`.wikitable > tbody > tr`).all();
@@ -203,6 +291,7 @@ export async function sldToArr() {
 	})();
 }
 
+//========================================================================
 export async function scrapeScryfallSLD() {
 	console.log('Scraping cards...');
 	const page = await gotoPage('https://scryfall.com/sets/sld?as=grid&order=set', 'domcontentloaded');
@@ -211,33 +300,26 @@ export async function scrapeScryfallSLD() {
 	await addToTable(locArr, query);
 }
 
-
+//========================================================================
 export async function scrapeSingleCardsSLD() {
 	console.log(sqlConfig);
 	console.log('checking scryfall...');
 	const page = await gotoPage('https://scryfall.com/sets/sld?as=grid&order=set', 'domcontentloaded');
 	const attribute = 'data-card-id';
-	const selector = `div[${attribute}]`; //`div[data-card-id]`
-	//const locArr = await page.locator(`${selector}`).all();
-	const query = `SELECT drop_name FROM missing_drops WHERE id =`;
-	const numRecords = await retrieveNumRecords('missing_drops');
-	const colVals = await retrieveColVals(numRecords, query);
+	const selector = `div[${attribute}]`;
+	const locArr = await page.locator(`${selector}`).all();
+	const query = `WITH RankedData AS (SELECT *, ROW_NUMBER() OVER (ORDER BY drop_name ASC) AS RowNum FROM missing_drops) SELECT drop_name FROM RankedData WHERE RowNum =`;
+	const numRecords = await getNumRecords('missing_drops');
+	const colVals = await getColVals(numRecords, query);
 	await retrieveFromDb(page, colVals);
 	console.log(colVals);
- 
 }
 
-// Prepared statement syntax
-//===========================
-// const sqlPool = new sql.ConnectionPool(sqlConfig);
-// const pool = await sqlPool.connect();
-// try {
-// 	const ps = new sql.PreparedStatement(pool);
-// 	ps.input('number', sql.Int);
-// 	await ps.prepare('Select TOP @number FROM missing_drops_backup');
-// 	const result = await ps.execute({ number: 3 });
-// 	console.log(result.recordset);
-// 	await ps.unprepare();
-// } catch (err) {
-// 	console.error('SQL operation failed', err);
-// }
+export async function addNameToTable(){
+	console.log('addNameToTable()');
+	const query = `SELECT scryfall_id FROM singleCardData WHERE tcgplayer_id IS NULL`;
+	const numRecords = await getNumRecords(query);
+	const idArr = await getColVals(await numRecords, query);
+	getCardNameFromApi(idArr);
+
+}
