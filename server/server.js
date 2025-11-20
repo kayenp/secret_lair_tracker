@@ -4,9 +4,10 @@ import path from 'path'
 import url from 'url'
 import { requestScryfall } from './scripts/main.js'
 import express from 'express'
-import sql from 'mssql'
-import { sqlConfig } from './sqlConfig.js'
+// import sql from 'mssql'
+// import { sqlConfig } from './sqlConfig.js'
 import { addNameToTable } from './playwright-scripts/mtg_wiki.js'
+import { queryDb, connectSql } from './mssql.js                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             '
 
 const PORT = process.env.PORT;
 const __dirname = import.meta.dirname;
@@ -87,7 +88,11 @@ app.get('/', (req, res) => {
 
 app.get('/api', async (req, res) => {
 	// const pool = await sqlPool.connect();
-	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
+	const query = 'SELECT TOP 1 * FROM TestTable';
+	const pool = await connectSql();
+	const resultSet = await queryDb(pool, query);
+	console.log('Querying db...');
+	// const resultSet = request.query('SELECT TOP 1 * FROM TestTable');
 	console.log(resultSet.recordset)
 	res.send(resultSet.recordset[0]);
 })
@@ -125,8 +130,6 @@ app.post('/api', (req, res) => {
 // Web scraping functions
 ====================
 */
-
-addNameToTable();
 
 // Shutdown SQL connection when exiting server
 process.on('exit', (code) => {

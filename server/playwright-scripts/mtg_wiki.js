@@ -4,27 +4,10 @@ import { chromium } from 'patchright'
 import { test, expect } from '@playwright/test'
 import sql from 'mssql'
 import { sqlConfig } from '../sqlConfig.js'
-
-/*
-================================================================================
-SQL helper functions
-================================================================================
-*/
-
-// Connects to new instance pool of TDS connections
-//
-async function connectSql(config=sqlConfig) {
-	const sqlPool = new sql.ConnectionPool(config);
-	let pool = await sqlPool.connect();
-	return pool;
-}
-
-// Sends command to SQL Server
-//
-async function queryDb(connection, sqlQuery) {
-	const request = connection.request();
-	return await request.query(`${sqlQuery}`)
-}
+import { connectSql, 
+	getNumRecords,
+	getColVals,
+	queryDb } from '../mssql.js'
 
 /*
 ================================================================================
@@ -75,8 +58,7 @@ async function strToLink(string) {
 async function scryfallIdScrape(page, dbVal) {
 		console.log('Single card scraping beginning...');
 		// Creates new sql connection in preparation for database interaction
-		const sqlPool = new sql.ConnectionPool(sqlConfig);
-		const pool = await sqlPool.connect();
+		const pool = await connectSql();
 
 		// Creates an array populated with elements with the attribute data-card-id
 		const linkArr = await page.locator(`[data-card-id]`).all();
@@ -117,24 +99,6 @@ async function scryfallIdScrape(page, dbVal) {
 		await page.waitForLoadState(`domcontentloaded`);
 		console.log('previous page...');
 }
-
-// Prepared statement function
-//
-async function createPreparedStatement(pool, query, paramObj, ...inputStatements) {
-	try {
-		const ps = new sql.PreparedStatement(pool);
-		for (let i = 0; i < inputStatements.length; i++) {
-			(() => {
-				inputStatements[i];
-			})(); // does this work???
-		};
-		await ps.prepare(query);
-		await ps.execute(paramObj);
-		await ps.unprepare();
-	} catch (err) {
-		console.error('Error during prepared statement', err);
-	};
-};
 
 // Loops through SLD DB titles and runs scryfallIDScrape() on each title
 //========================================================================
@@ -204,28 +168,6 @@ async function getCardNameFromApi(idArr) {
 	console.log('Succcessful update.');
 }
 
-// Returns the total number of records from a table
-//========================================================================
-async function getNumRecords(query) {
-	console.log('Getting number of records from database...')
-	const numRecordsObj = await queryDb(await connectSql(), query);
-	console.log(`Records count complete. Length = ${numRecordsObj.recordset.length}`);
-	return numRecordsObj.recordset.length;
-}
-
-// Loops through table column and pushes result to an array
-//========================================================================
-async function getColVals(maxIterations, query) {
-	console.log('Getting column values...');
-	let dbResult = [];
-	for (let i = 0; i < maxIterations; i++) { // <--- change back to maxIterations
-		let result = await queryDb(await connectSql(), `${query}`);
-		console.log(result.recordset[i]["scryfall_id"]);
-		dbResult.push(result.recordset[i]["scryfall_id"]);
-	};
-	return dbResult;
-}
-
 // Enters the group page for that SLD <---- NEED TO COMPLETE
 //========================================================================
 async function openSldGroupPage(tableVals) {
@@ -233,7 +175,6 @@ async function openSldGroupPage(tableVals) {
 		try {
 			await page.locator(`#${strToLink(tableVals[i])}`).getByRole('link', { name: 'cards' }).click();
 			await page.waitForLoadState('domcontentloaded');
-
 		}
 		catch (err) {
 			console.log(`Error running scrapeIdByGroup: ${err}`);
