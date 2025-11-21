@@ -40,22 +40,22 @@ export async function getColVals(maxIterations, query) {
 
 // Prepared statement function
 //
-export async function createSqlPs(query, paramObj, inputStatements) {
-	const pool = connectSql();
-	try {
-		const ps = new sql.PreparedStatement(pool);
-		for (let i = 0; i < inputStatements.length; i++) {
-			(() => {
-				inputStatements[i];
-			})(); // does this work???
-		};
-		await ps.prepare(query);
-		await ps.execute(paramObj);
-		await ps.unprepare();
-	} catch (err) {
-		console.error('Error during prepared statement', err);
-	};
-};
+// export async function createSqlPs(query, paramObj, inputStatements) {
+// 	const pool = connectSql();
+// 	try {
+// 		const ps = new sql.PreparedStatement(pool);
+// 		for (let i = 0; i < inputStatements.length; i++) {
+// 			(() => {
+// 				inputStatements[i];
+// 			})(); // does this work???
+// 		};
+// 		await ps.prepare(query);
+// 		await ps.execute(paramObj);
+// 		await ps.unprepare();
+// 	} catch (err) {
+// 		console.error('Error during prepared statement', err);
+// 	};
+// };
 
-createSqlPs('SELECT TOP (@number) FROM @table', {number: 5, table: 'TestTable'}, [ps.input('number', INT), ps.input('table', sql.VarChar(255))]);
+// createSqlPs('SELECT TOP (@number) FROM @table', {number: 5, table: 'TestTable'}, [ps.input('number', INT), ps.input('table', sql.VarChar(255))]);
 

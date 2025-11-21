@@ -1,31 +1,43 @@
 "use strict";
 
+const form = document.querySelector('form');
 const input = document.querySelector('input');
-const btn = document.querySelector('button');
+const submitBtn = document.querySelector('[type="submit"]');
 
-const getSet = () => {
+const getQuery = () => {
 	return input.value;
 }
 
-const sendSearch = async () => {
-	let value = {
-		set: getSet(),
+async function sendSearch(event) {
+	// Prevents page reload on form submission
+	event.preventDefault();
+	let query = getQuery();
+	query = query.split(' ').join('+');
+	console.log(query);
+	try {
+		const response = await fetch(`http://localhost:3000/drops?search=${query}`);
+		const data = await response.json();
+		console.log(data);
+	} catch (err) {
+		console.error("ERROR during fetch", err);
 	}
-	value = JSON.stringify(value);
-	
-	const serverResponse = await fetch('http://localhost:3000/api', {
-		method: "POST",
-		body: value,
-		headers: {
-			"Content-Type": "application/json",
-		}
-	});
 
-	const serverData = await serverResponse.json();
 
-	console.log('Data sent to server');
-	console.log(serverData);
+
+	// let value = { //<--- cannot send into body since body not allowed for GET/HEAD
+	// 	search: getSet(),
+	// }
+	// value = JSON.stringify(value);
+	//const string = input.value;
+	// const serverResponse = await fetch(`http://localhost:3000/${string}`, {
+
+	// });
+
+	//const serverData = await serverResponse.json();
+
+	// console.log('Data sent to server');
+	// console.log(serverData);
 	
 }
 
-btn.addEventListener("click", sendSearch);
+form.addEventListener("submit", sendSearch);

@@ -56,7 +56,9 @@ app.use((req, res, next) => {
 	console.log(req.method, req.url);
 	next();
 })
-app.use(express.json());
+app.use(express.json(), (req, res, next) => {
+	next();
+});
 
 /*
 ====================
@@ -87,7 +89,6 @@ app.get('/', (req, res) => {
 */
 
 app.get('/api', async (req, res) => {
-	// const pool = await sqlPool.connect();
 	const query = 'SELECT TOP 1 * FROM TestTable';
 	const pool = await connectSql();
 	const resultSet = await queryDb(pool, query);
@@ -96,6 +97,23 @@ app.get('/api', async (req, res) => {
 	console.log(resultSet.recordset)
 	res.send(resultSet.recordset[0]);
 })
+
+app.get('/drops/', async (req, res) => {
+	console.log(req.url);
+	const query = new URLSearchParams(req.url);
+	let terms = '';
+	query.forEach(ele => terms = ele);
+	terms = terms.split(' ');
+	console.log(terms, '<--- terms1');
+	
+	res.json({ request: 'received' });
+})
+
+// app.get('/api/drops', async (req, res) => {
+	
+// 	const pool = await connectSql();
+
+// })
 
 app.post('/api', async (req, res) => {
 	const insertSet = await pool.request().query(`INSERT INTO TestTable (Name, ReleaseDate, Qty) VALUES ('Bill', '2025-11-01', '1')`);
