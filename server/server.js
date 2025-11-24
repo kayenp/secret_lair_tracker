@@ -4,7 +4,8 @@ import path from 'path'
 import url from 'url'
 import { requestScryfall } from './scripts/main.js'
 import express from 'express'
-// import sql from 'mssql'
+import Express from 'express'
+import sql from 'mssql'
 // import { sqlConfig } from './sqlConfig.js'
 import { addNameToTable } from './playwright-scripts/mtg_wiki.js'
 import { queryDb, connectSql } from './mssql.js                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             '
@@ -100,12 +101,19 @@ app.get('/api', async (req, res) => {
 
 app.get('/drops/', async (req, res) => {
 	console.log(req.url);
-	const query = new URLSearchParams(req.url);
+	const clientQuery = new URLSearchParams(req.url);
 	let terms = '';
-	query.forEach(ele => terms = ele);
-	terms = terms.split(' ');
+	clientQuery.forEach(ele => terms += ele);
 	console.log(terms, '<--- terms1');
-	
+	const pool = await connectSql();
+	const ps = new sql.PreparedStatement(pool);
+	const result = await ps.prepare(`SELECT T.* FROM singleCardData AS T 
+		INNER JOIN STRING_SPLIT(@string, ' ') AS S 
+		ON T.card_name = S.value;`);
+	ps.input('string', sql.VarChar(255));
+	await ps.execute({ string: terms });
+	ps.unprepare;
+	console.log(result);
 	res.json({ request: 'received' });
 })
 
