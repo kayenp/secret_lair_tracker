@@ -100,21 +100,43 @@ app.get('/api', async (req, res) => {
 })
 
 app.get('/drops/', async (req, res) => {
-	console.log(req.url);
-	const clientQuery = new URLSearchParams(req.url);
-	let terms = '';
-	clientQuery.forEach(ele => terms += ele);
-	console.log(terms, '<--- terms1');
-	const pool = await connectSql();
-	const ps = new sql.PreparedStatement(pool);
-	const result = await ps.prepare(`SELECT T.* FROM singleCardData AS T 
-		INNER JOIN STRING_SPLIT(@string, ' ') AS S 
-		ON T.card_name = S.value;`);
-	ps.input('string', sql.VarChar(255));
-	await ps.execute({ string: terms });
-	ps.unprepare;
-	console.log(result);
-	res.json({ request: 'received' });
+	try {
+		// Prefer Express's parsed query object (e.g. /drops?terms=a b c)
+		//const terms = (req.query.terms || req.query.q || '').toString();
+		const terms = (req.query.search);
+		console.log(req.url, '-> parsed terms:', terms);
+		console.log(terms, '<--- terms');
+
+		const pool = await connectSql();
+		const ps = new sql.PreparedStatement(pool);
+
+		// Declare inputs BEFORE calling prepare()
+		ps.input('string', sql.VarChar(255));
+		// //returns any of the search terms
+		// await ps.prepare(`SELECT T.* FROM singleCardData AS T
+        // JOIN STRING_SPLIT(@string, ' ') AS S
+        //   ON T.card_name LIKE '%' + TRIM(S.value) + '%' ORDER BY card_name ASC`);
+		
+		// returns all of the search terms
+		await ps.prepare(`
+			SELECT T.*
+			FROM singleCardData AS T
+			WHERE NOT EXISTS (
+				SELECT 1 FROM STRING_SPLIT(@string, ' ') AS s
+				WHERE LTRIM(RTRIM(s.value)) <> ''
+				AND T.card_name NOT LIKE '%' + LTRIM(RTRIM(s.value)) + '%'
+			)
+			ORDER BY card_name ASC;
+		`);
+		const result = await ps.execute({ string: terms });
+		await ps.unprepare();
+
+		console.log('DB result:', result.recordset?.length ?? 0);
+		res.json(result.recordset || []);
+	} catch (err) {
+		console.error('/drops error:', err);
+		res.status(500).json({ error: err.message });
+	}
 })
 
 // app.get('/api/drops', async (req, res) => {

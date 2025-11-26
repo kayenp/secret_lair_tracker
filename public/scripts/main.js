@@ -21,22 +21,14 @@ async function sendSearch(event) {
 	} catch (err) {
 		console.error("ERROR during fetch", err);
 	}
+	createTable(data);
+}
 
-
-
-	// let value = { //<--- cannot send into body since body not allowed for GET/HEAD
-	// 	search: getSet(),
-	// }
-	// value = JSON.stringify(value);
-	//const string = input.value;
-	// const serverResponse = await fetch(`http://localhost:3000/${string}`, {
-
-	// });
-
-	//const serverData = await serverResponse.json();
-
-	// console.log('Data sent to server');
-	// console.log(serverData);
+function createTable(data) {
+	const docFrag = createDocumentFragment();
+	const table = createElement('table');
+	const thead = createElement('thead');
+	const tbody = createElement('tbody');
 	
 }
 
