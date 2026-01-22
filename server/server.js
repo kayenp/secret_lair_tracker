@@ -112,6 +112,7 @@ app.get('/drops/', async (req, res) => {
 
 		// Declare inputs BEFORE calling prepare()
 		ps.input('string', sql.VarChar(255));
+		
 		// //returns any of the search terms
 		// await ps.prepare(`SELECT T.* FROM singleCardData AS T
         // JOIN STRING_SPLIT(@string, ' ') AS S
