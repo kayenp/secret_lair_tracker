@@ -4,7 +4,6 @@ import path from 'path'
 import url from 'url'
 import { requestScryfall } from './scripts/main.js'
 import express from 'express'
-import Express from 'express'
 import sql from 'mssql'
 // import { sqlConfig } from './sqlConfig.js'
 import { addNameToTable } from './playwright-scripts/mtg_wiki.js'
@@ -14,7 +13,13 @@ const PORT = process.env.PORT;
 const __dirname = import.meta.dirname;
 const __prevDir = path.join(__dirname, '..');
 const __public = path.join(__prevDir, '/', 'public');
-const server = http.createServer((req, res) => {});
+const server = http.createServer((req, res) => {
+	const headers = {
+		'Access-Control-Allow-Origin': '127.0.0.1',
+		'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
+		'Access-Control-Max-Age': 2592000
+	}
+});
 const app = express();
 //const sqlPool = new sql.ConnectionPool(sqlConfig);
 //const pool = await sqlPool.connect();
