@@ -15,20 +15,21 @@ async function sendSearch(event) {
 	query = query.split(' ').join('+');
 	console.log(query);
 	try {
-		const response = await fetch(`http://localhost:3000/drops?search=${query}`);
+		const response = await fetch(`http://127.0.0.1:3000/drops?search=${query}`);
 		const data = await response.json();
 		console.log(data);
+		createTable(data);
 	} catch (err) {
 		console.error("ERROR during fetch", err);
 	}
-	createTable(data);
+	
 }
 
 function createTable(data) {
-	const docFrag = createDocumentFragment();
-	const table = createElement('table');
-	const thead = createElement('thead');
-	const tbody = createElement('tbody');
+	const docFrag = document.createDocumentFragment();
+	const table = document.createElement('table');
+	const thead = document.createElement('thead');
+	const tbody = document.createElement('tbody');
 	
 }
 
