@@ -14,6 +14,14 @@ import { sqlConfig } from './sqlConfig.js'
 import { addNameToTable } from './playwright-scripts/scryfall.js'
 import { queryDb, connectSql } from './mssql.js                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             '
 
+// PLAYWRIGHT
+import { startBrowser,
+	gotoPage
+} from './playwrightFn.js'
+import { chromium } from 'patchright';
+import { test, expect } from '@playwright/test'
+
+
 // SERVER
 import { requestScryfall } from './scripts/main.js'
 
@@ -26,6 +34,13 @@ const app = express();
 const sqlPool = new sql.ConnectionPool(sqlConfig);
 
 //const pool = await sqlPool.connect();
+
+const page = await startBrowser();
+await page.goto('https://www.tcgplayer.com/product/7357');
+await page.waitForLoadState('domcontentloaded');
+await page.locator('[class="listing-item__listing-data__info"]')
+	.filter({ hasText: 'near mint' }).locator('div').first().highlight();
+
 
 (async () => {
     const pool = await sqlPool.connect();
