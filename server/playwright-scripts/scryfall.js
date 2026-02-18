@@ -7,7 +7,8 @@ import { sqlConfig } from '../sqlConfig.js'
 import { connectSql, 
 	getNumRecords,
 	getColVals,
-	queryDb } from '../mssql.js'
+	queryDb 
+} from '../mssql.js'
 
 /*
 ================================================================================

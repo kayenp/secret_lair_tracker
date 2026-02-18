@@ -1,35 +1,38 @@
+// NODEJS
 import http from 'http'
 import fs from 'fs/promises'
 import path from 'path'
 import url from 'url'
-import { requestScryfall } from './scripts/main.js'
+
+// EXPRESS
 import express from 'express'
+import cors from 'cors'
+
+// SQL
 import sql from 'mssql'
-// import { sqlConfig } from './sqlConfig.js'
-import { addNameToTable } from './playwright-scripts/mtg_wiki.js'
+import { sqlConfig } from './sqlConfig.js'
+import { addNameToTable } from './playwright-scripts/scryfall.js'
 import { queryDb, connectSql } from './mssql.js                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             '
+
+// SERVER
+import { requestScryfall } from './scripts/main.js'
 
 const PORT = process.env.PORT;
 const __dirname = import.meta.dirname;
 const __prevDir = path.join(__dirname, '..');
 const __public = path.join(__prevDir, '/', 'public');
-const server = http.createServer((req, res) => {
-	const headers = {
-		'Access-Control-Allow-Origin': '127.0.0.1',
-		'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
-		'Access-Control-Max-Age': 2592000
-	}
-});
+const server = http.createServer((req, res) => {});
 const app = express();
-//const sqlPool = new sql.ConnectionPool(sqlConfig);
+const sqlPool = new sql.ConnectionPool(sqlConfig);
+
 //const pool = await sqlPool.connect();
 
-// (async () => {
-//     const pool = await sqlPool.connect();
-// 	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
-// 	console.log(resultSet.recordset)
-//     console.log('sql global pool connection successful')
-// })()
+(async () => {
+    const pool = await sqlPool.connect();
+	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
+	console.log(resultSet.recordset)
+    console.log('sql global pool connection successful')
+})()
 
 /*
 ====================
@@ -65,6 +68,9 @@ app.use((req, res, next) => {
 app.use(express.json(), (req, res, next) => {
 	next();
 });
+app.use(cors(), (req, res, next) => {
+	next();
+})
 
 /*
 ====================
@@ -184,6 +190,8 @@ app.post('/api', (req, res) => {
 // Web scraping functions
 ====================
 */
+
+
 
 // Shutdown SQL connection when exiting server
 process.on('exit', (code) => {
