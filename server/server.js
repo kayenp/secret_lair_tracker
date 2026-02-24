@@ -31,10 +31,17 @@ const pool = new sql.ConnectionPool(sqlConfig);
 
 // TESTING
 //====================================================================================================================================
-const connected = await pool.connect()
-	.catch(console.error);
 
-const request = new sql.Request(connected);
+
+// const connected = await pool.connect()
+// 	.catch(console.error);
+
+//const request = new sql.Request(connected);
+
+await pool.connect().catch(console.error);
+const request = new sql.Request(pool);
+const results = await request.query('SELECT TOP (2) * FROM dbo.singleCardData').catch(console.error);
+console.log(results);
 
 // const results = await request.query('SELECT TOP (2) * FROM dbo.singleCardData')
 // 	.then(result => result)
@@ -47,6 +54,8 @@ async function addDelay(ms){
 		}, ms)
 	});
 };
+
+
 
 async function retrieveDataDB() {
 	const ps = new sql.PreparedStatement(pool);
@@ -71,7 +80,7 @@ async function retrieveDataDB() {
 	
 }
 
-retrieveDataDB();
+
 
 // function updateFoils() {
 // 	for (let i = )
@@ -102,11 +111,11 @@ retrieveDataDB();
 
 //const pool = await sqlPool.connect();
 
-const page = await startBrowser();
-await page.goto('https://www.tcgplayer.com/product/7357');
-await page.waitForLoadState('domcontentloaded');
-await page.locator('[class="listing-item__listing-data__info"]')
-	.filter({ hasText: 'near mint' }).locator('div').first().highlight();
+// const page = await startBrowser();
+// await page.goto('https://www.tcgplayer.com/product/7357');
+// await page.waitForLoadState('domcontentloaded');
+// await page.locator('[class="listing-item__listing-data__info"]')
+// 	.filter({ hasText: 'near mint' }).locator('div').first().highlight();
 
 
 // const page = await startBrowser();
