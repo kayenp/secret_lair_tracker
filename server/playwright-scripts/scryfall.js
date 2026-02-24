@@ -32,7 +32,7 @@ async function startBrowser() {
 // Adds API call delay
 //
 async function addDelay(ms) {
-	return await new Promise((resolve, rejeft) => {
+	return await new Promise((resolve, reject) => {
 		setTimeout(() => {
 			resolve(console.log(`Added delay for ${ms}ms.`));
 		}, ms)

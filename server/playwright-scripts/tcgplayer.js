@@ -3,4 +3,7 @@
 import { strToLink } from 'sqlFn'
 import { startBrowser, gotoPage } from 'playwrightFn'
 
-(await gotoPage('https://tcgplayer.com/product/205237'))();
+const page = startBrowser();
+await page.goto('https://www.tcgplayer.com/product/207153');
+await page.waitForLoadState('domcontentloaded');
+await page.getByText().first('near mint');

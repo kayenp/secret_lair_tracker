@@ -18,5 +18,4 @@ export async function gotoPage(url, loadstate) {
 	const page = await startBrowser();
 	await page.goto(`${url}`);
 	await page.waitForLoadState(`${loadstate}`);
-	return page;
 }

@@ -102,6 +102,20 @@ retrieveDataDB();
 
 //const pool = await sqlPool.connect();
 
+const page = await startBrowser();
+await page.goto('https://www.tcgplayer.com/product/7357');
+await page.waitForLoadState('domcontentloaded');
+await page.locator('[class="listing-item__listing-data__info"]')
+	.filter({ hasText: 'near mint' }).locator('div').first().highlight();
+
+
+// const page = await startBrowser();
+// await page.goto('https://www.tcgplayer.com/product/7357');
+// await page.waitForLoadState('domcontentloaded');
+// await page.locator('[class="listing-item__listing-data__info"]')
+// 	.filter({ hasText: 'near mint' }).locator('div').first().highlight();
+
+
 // (async () => {
 //     const pool = await sqlPool.connect();
 // 	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
