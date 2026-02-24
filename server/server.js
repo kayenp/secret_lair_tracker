@@ -14,6 +14,9 @@ import { sqlConfig } from './sqlConfig.js'
 import { addNameToTable } from './playwright-scripts/scryfall.js'
 import { queryDb, connectSql } from './mssql.js                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             '
 
+// Playwright
+import { startBrowser } from './playwrightFn.js'
+
 // SERVER
 import { requestScryfall } from './scripts/main.js'
 
@@ -23,16 +26,88 @@ const __prevDir = path.join(__dirname, '..');
 const __public = path.join(__prevDir, '/', 'public');
 const server = http.createServer((req, res) => {});
 const app = express();
-const sqlPool = new sql.ConnectionPool(sqlConfig);
+const pool = new sql.ConnectionPool(sqlConfig);
+
+
+// TESTING
+//====================================================================================================================================
+const connected = await pool.connect()
+	.catch(console.error);
+
+const request = new sql.Request(connected);
+
+// const results = await request.query('SELECT TOP (2) * FROM dbo.singleCardData')
+// 	.then(result => result)
+// 	.catch(console.error);
+
+async function addDelay(ms){
+	return await new Promise((resolve, reject) => {
+		setTimeout(() => {
+			resolve(console.log(`Added delay for ${ms}ms`));
+		}, ms)
+	});
+};
+
+async function retrieveDataDB() {
+	const ps = new sql.PreparedStatement(pool);
+	const results = await request.query('SELECT Scryfall_ID FROM dbo.singleCardData ORDER BY Scryfall_ID ASC').catch(console.error);
+	console.log(results.recordset.length);
+	
+	for (let i = 0; i < 2; i++) {
+		const response = (await fetch(`https://api.scryfall.com/cards/${results.recordset[i]['Scryfall_ID']}`));
+		const data = await response.json();
+		console.log(results.recordset[i]);
+		console.log(`https://api.scryfall.com/cards/${results.recordset[i]['Scryfall_ID']}.json`);
+		console.log(data.finishes);
+		if (data.finishes.includes('foil')) {
+			ps.input('param1', sql.VarChar(255));
+			await ps.prepare(`UPDATE dbo.singleCardData SET foil = 1 WHERE Scryfall_ID = @param1`).catch(console.error);
+			await ps.execute({ param1: results.recordset[i]['Scryfall_ID']}).catch(console.error);
+			await ps.unprepare().catch(console.error);
+			// await request.query(`UPDATE dbo.singleCardData SET foil = 'Y' WHERE Scryfall_ID = ${results.recordset[i]['Scryfall_ID']}`)
+		}
+		await addDelay(3000);
+	}
+	
+}
+
+retrieveDataDB();
+
+// function updateFoils() {
+// 	for (let i = )
+// }
+
+// async function retrievePrices() {
+// 	for (let i = 0; i < tcgp_ID.length; i++) {
+// 		await page.goto(`https://www.tcgplayer.com/product/${tcgp_ID[i]}`);
+// 		await page.waitForLoadState('domcontentloaded');
+// 		const nmFirst = page.locator('[class="listing-item__listing-data__info"]').filter({ hasText: 'near mint' }).locator('div').first();
+// 		nmFirst.hover();
+// 		nmFirst.highlight();
+// 		const price = await nmFirst.innerText();
+// 		console.log(price);
+// 		updatePriceDB(price);
+// 		// updatePriceDB
+// 		await addDelay(10000);
+// 	}
+// };
+
+// async function updatePriceDB(price) {
+// 	request.query(`INSERT INTO dbo.singleCardData (TCGLow) VALUES ${}`)
+// }
+
+// retrievePrices();
+
+//====================================================================================================================================
 
 //const pool = await sqlPool.connect();
 
-(async () => {
-    const pool = await sqlPool.connect();
-	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
-	console.log(resultSet.recordset)
-    console.log('sql global pool connection successful')
-})()
+// (async () => {
+//     const pool = await sqlPool.connect();
+// 	const resultSet = await pool.request().query('SELECT TOP 1 * FROM TestTable');
+// 	console.log(resultSet.recordset)
+//     console.log('sql global pool connection successful')
+// })()
 
 /*
 ====================
