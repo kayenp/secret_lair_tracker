@@ -28,27 +28,15 @@ const server = http.createServer((req, res) => {});
 const app = express();
 const pool = new sql.ConnectionPool(sqlConfig);
 
+await pool.connect().catch(console.error);
 
 // TESTING
 //====================================================================================================================================
 
 
-// const connected = await pool.connect()
-// 	.catch(console.error);
-
-//const request = new sql.Request(connected);
-
-await pool.connect().catch(console.error);
-const request = new sql.Request(pool);
-const results = await request.query('SELECT TOP (2) * FROM dbo.singleCardData').catch(console.error);
-console.log(results);
-
-// const results = await request.query('SELECT TOP (2) * FROM dbo.singleCardData')
-// 	.then(result => result)
-// 	.catch(console.error);
 
 async function addDelay(ms){
-	return await new Promise((resolve, reject) => {
+	/* return */ await new Promise((resolve, reject) => {
 		setTimeout(() => {
 			resolve(console.log(`Added delay for ${ms}ms`));
 		}, ms)
@@ -57,59 +45,81 @@ async function addDelay(ms){
 
 
 
-async function retrieveDataDB() {
-	const ps = new sql.PreparedStatement(pool);
-	const results = await request.query('SELECT Scryfall_ID FROM dbo.singleCardData ORDER BY Scryfall_ID ASC').catch(console.error);
-	console.log(results.recordset.length);
+// async function retrieveDataDB() {
+// 	const ps = new sql.PreparedStatement(pool);
+// 	await ps.prepare(`SELECT Scryfall_ID FROM dbo.singleCardData ORDER BY Scryfall_ID ASC`)
+// 	const results = await ps.execute({}).catch(console.error);
+// 	await ps.unprepare().catch(console.error);
 	
-	for (let i = 0; i < 2; i++) {
-		const response = (await fetch(`https://api.scryfall.com/cards/${results.recordset[i]['Scryfall_ID']}`));
-		const data = await response.json();
-		console.log(results.recordset[i]);
-		console.log(`https://api.scryfall.com/cards/${results.recordset[i]['Scryfall_ID']}.json`);
-		console.log(data.finishes);
-		if (data.finishes.includes('foil')) {
-			ps.input('param1', sql.VarChar(255));
-			await ps.prepare(`UPDATE dbo.singleCardData SET foil = 1 WHERE Scryfall_ID = @param1`).catch(console.error);
-			await ps.execute({ param1: results.recordset[i]['Scryfall_ID']}).catch(console.error);
-			await ps.unprepare().catch(console.error);
-			// await request.query(`UPDATE dbo.singleCardData SET foil = 'Y' WHERE Scryfall_ID = ${results.recordset[i]['Scryfall_ID']}`)
-		}
+// 	for (let i = 0; i < results.recordset.length; i++) {
+// 		const response = await fetch(`https://api.scryfall.com/cards/${results.recordset[i]['Scryfall_ID']}`);
+// 		const data = await response.json();
+// 		console.log(data);
+// 		console.log(`https://api.scryfall.com/cards/${results.recordset[i]['Scryfall_ID']}`);
+// 		console.log(data.foil === true);
+// 		if (data.nonfoil === true) {
+// 			const ps = new sql.PreparedStatement(pool);
+// 			ps.input('scryfallID', sql.VarChar(255));
+// 			await ps.prepare(`UPDATE dbo.singleCardData SET nonfoil = 1 WHERE Scryfall_ID = @scryfallID`).catch(console.error);
+// 			const execute = await ps.execute({ scryfallID: results.recordset[i]['Scryfall_ID']}).catch(console.error);
+// 			console.log(results.recordset[i]['Scryfall_ID'])
+// 			console.log(execute);
+// 			await ps.unprepare().catch(console.error);
+// 			// await request.query(`UPDATE dbo.singleCardData SET foil = 'Y' WHERE Scryfall_ID = ${results.recordset[i]['Scryfall_ID']}`)
+// 		}
+// 		await addDelay(100);
+// 	}
+// }
+// retrieveDataDB();
+
+
+async function retrieveNonfoilPrices() {
+	const ps = new sql.PreparedStatement(pool);
+	await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE tcgplayer_ID IS NOT NULL ORDER BY unique_ID ASC`);
+	const tcgplayerIDs = await ps.execute().catch(console.error);
+	await ps.unprepare().catch(console.error);
+	console.log(tcgplayerIDs.recordset);
+	const page = await startBrowser();
+
+	for (let i = 0; i < tcgplayerIDs.recordset.length; i++) {
+		await page.goto(`https://www.tcgplayer.com/product/${tcgplayerIDs.recordset[i]['tcgplayer_ID']}`);
+		await page.waitForLoadState('domcontentloaded');
+		const nmFirst = page.locator('[class="listing-item__listing-data"]')
+			.filter({ has: page.locator("[alt='Gold Star Seller']") })
+			.filter({ hasText: 'near mint' })
+			.filter({ hasNotText: 'near mint foil' }) // checks for nonfoils
+			.first()
+			.locator('[class="listing-item__listing-data__info"]')
+			.locator('div')
+		nmFirst.hover();
+		nmFirst.highlight();
+		let price = await nmFirst.innerText();
+		price = price.slice(1);
+		const shipping = await nmFirst.locator(`+ span`).innerText();
+		let shipNum = shipping.split('').filter(ele => ele === '.' || ele === '0' || Number(ele)).join('');
+		const total = Number((Number(price) + Number(shipNum)).toFixed(2));
+		console.log(total);
+		updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID']);
 		await addDelay(3000);
 	}
-	
+};
+retrieveNonfoilPrices();
+
+async function updatePriceDB(price, tcgplayer_ID) {
+	console.log(tcgplayer_ID);
+	console.log(price);
+	const ps = new sql.PreparedStatement(pool);
+	ps.input('price', sql.Decimal(12,2))
+	ps.input('tcgplayer_ID', sql.Int)
+	await ps.prepare(`UPDATE dbo.singleCardData SET TCGLow_Nonfoil = @price WHERE TCGPlayer_ID = @tcgplayer_ID`).catch(console.error);
+	const execute = await ps.execute({ price: price, tcgplayer_ID: tcgplayer_ID }).catch(console.error);
+	console.log(execute);
+	await ps.unprepare().catch(console.error);
 }
-
-
-
-// function updateFoils() {
-// 	for (let i = )
-// }
-
-// async function retrievePrices() {
-// 	for (let i = 0; i < tcgp_ID.length; i++) {
-// 		await page.goto(`https://www.tcgplayer.com/product/${tcgp_ID[i]}`);
-// 		await page.waitForLoadState('domcontentloaded');
-// 		const nmFirst = page.locator('[class="listing-item__listing-data__info"]').filter({ hasText: 'near mint' }).locator('div').first();
-// 		nmFirst.hover();
-// 		nmFirst.highlight();
-// 		const price = await nmFirst.innerText();
-// 		console.log(price);
-// 		updatePriceDB(price);
-// 		// updatePriceDB
-// 		await addDelay(10000);
-// 	}
-// };
-
-// async function updatePriceDB(price) {
-// 	request.query(`INSERT INTO dbo.singleCardData (TCGLow) VALUES ${}`)
-// }
 
 // retrievePrices();
 
 //====================================================================================================================================
-
-//const pool = await sqlPool.connect();
 
 // const page = await startBrowser();
 // await page.goto('https://www.tcgplayer.com/product/7357');
@@ -331,4 +341,3 @@ process.on('exit', (code) => {
 // }
 
 // testConnection();
-
