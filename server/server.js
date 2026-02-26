@@ -83,9 +83,9 @@ async function retrievePrices() {
 	const page = await startBrowser();
 
 	// Playwright searches for element and content
-	for (let i = 0; i < 1 /*tcgplayerIDs.recordset.length*/; i++) {
-		// await page.goto(`https://www.tcgplayer.com/product/${tcgplayerIDs.recordset[i]['tcgplayer_ID']}`);
-		await page.goto(`https://www.tcgplayer.com/product/545738`); // Test url
+	for (let i = 0; i < tcgplayerIDs.recordset.length; i++) {
+		await page.goto(`https://www.tcgplayer.com/product/${tcgplayerIDs.recordset[i]['tcgplayer_ID']}`);
+		// await page.goto(`https://www.tcgplayer.com/product/545738`); // Test url
 		await page.waitForLoadState('domcontentloaded');
 		
 		const nmFirst = page.locator('[class="listing-item__listing-data"]')
