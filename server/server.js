@@ -111,16 +111,16 @@ async function retrievePrices() {
 		const total = Number((Number(price) + Number(shipNum)).toFixed(2));
 		console.log(total);
 		
-	// 	const listingTitle = await page.locator('h1').innerText();
-	// 	console.log(listingTitle);
+		const listingTitle = await page.locator('h1').innerText();
+		console.log(listingTitle);
 		
-	// 	if (!listingTitle.includes('Foil')) {
-	// 		updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], true, false);
-	// 	} else if (listingTitle.includes('Foil')) {
-	// 		updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], false, true);
-	// 	}
+		if (!listingTitle.includes('Foil')) {
+			updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], true, false);
+		} else if (listingTitle.includes('Foil')) {
+			updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], false, true);
+		}
 
-	// 	await addDelay(3000);
+		await addDelay(3000);
 	}
 };
 retrievePrices();
