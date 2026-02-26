@@ -5,10 +5,27 @@ const input = document.querySelector('input');
 const submitBtn = document.querySelector('[type="submit"]');
 const main = document.querySelector('main');
 const tableContainer = document.querySelector('.divTableContainer');
+const h1 = document.querySelector('h1');
 
-const getQuery = () => {
-	return input.value;
+/*
+================================================================================
+TESTING
+================================================================================
+*/
+
+async function get() {
+	const response = await fetch('https://api.scryfall.com/cards/1020940239');
+	const data = await response.json();
+	console.log(data)
 }
+
+get();
+
+/*
+================================================================================
+TESTING
+================================================================================
+*/
 
 async function sendSearch(event) {
 	// Prevents page reload on form submission
