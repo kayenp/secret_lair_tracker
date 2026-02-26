@@ -75,8 +75,8 @@ async function addDelay(ms){
 
 async function retrievePrices() {
 	const ps = new sql.PreparedStatement(pool);
-	// await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE (tcgplayer_ID IS NOT NULL AND Date_updated IS NULL) ORDER BY unique_ID ASC`);
-	await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE tcgplayer_ID IS NOT NULL AND (Date_updated <= CAST('2026-02-26 02:36:00' AS datetime2) OR Date_updated IS NULL) ORDER BY unique_ID ASC`);
+	// await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE (tcgplayer_ID IS NOT NULL AND Date_updated IS NULL) ORDER BY unique_ID ASC`); // previous SQL statement
+	await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE tcgplayer_ID IS NOT NULL AND (Date_updated <= CAST('2026-02-26 02:50:00' AS datetime2) OR Date_updated IS NULL) ORDER BY unique_ID ASC`);
 	const tcgplayerIDs = await ps.execute().catch(console.error);
 	await ps.unprepare().catch(console.error);
 	console.log(tcgplayerIDs.recordset);
@@ -98,8 +98,11 @@ async function retrievePrices() {
 		nmFirst.highlight();
 		let price = await nmFirst.innerText();
 		price = price.slice(1);
+		console.log(price);
+		
 		const shipping = await nmFirst.locator(`+ span`).innerText();
 		console.log(shipping);
+		
 		let shipNum;
 		if (shipping.includes('Free Shipping on Orders Over')) {
 			shipNum = '0';	
