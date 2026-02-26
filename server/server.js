@@ -73,21 +73,22 @@ async function addDelay(ms){
 // retrieveDataDB();
 
 
-async function retrieveNonfoilPrices() {
+async function retrievePrices() {
 	const ps = new sql.PreparedStatement(pool);
-	await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE tcgplayer_ID IS NOT NULL ORDER BY unique_ID ASC`);
+	await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE (tcgplayer_ID IS NOT NULL AND Date_updated IS NULL) ORDER BY unique_ID ASC`);
 	const tcgplayerIDs = await ps.execute().catch(console.error);
 	await ps.unprepare().catch(console.error);
 	console.log(tcgplayerIDs.recordset);
 	const page = await startBrowser();
 
+	// Playwright searches for element and content
 	for (let i = 0; i < tcgplayerIDs.recordset.length; i++) {
 		await page.goto(`https://www.tcgplayer.com/product/${tcgplayerIDs.recordset[i]['tcgplayer_ID']}`);
 		await page.waitForLoadState('domcontentloaded');
+		
 		const nmFirst = page.locator('[class="listing-item__listing-data"]')
 			.filter({ has: page.locator("[alt='Gold Star Seller']") })
 			.filter({ hasText: 'near mint' })
-			.filter({ hasNotText: 'near mint foil' }) // checks for nonfoils
 			.first()
 			.locator('[class="listing-item__listing-data__info"]')
 			.locator('div')
@@ -99,20 +100,34 @@ async function retrieveNonfoilPrices() {
 		let shipNum = shipping.split('').filter(ele => ele === '.' || ele === '0' || Number(ele)).join('');
 		const total = Number((Number(price) + Number(shipNum)).toFixed(2));
 		console.log(total);
-		updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID']);
+		
+		const listingTitle = await page.locator('h1').innerText();
+		console.log(listingTitle);
+		
+		if (!listingTitle.includes('Foil')) {
+			updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], true, false);
+		} else if (listingTitle.includes('Foil')) {
+			updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], false, true);
+		}
+
 		await addDelay(3000);
 	}
 };
-retrieveNonfoilPrices();
+retrievePrices();
 
-async function updatePriceDB(price, tcgplayer_ID) {
+async function updatePriceDB(price, tcgplayer_ID, nonfoil = false, foil = false) {
 	console.log(tcgplayer_ID);
 	console.log(price);
 	const ps = new sql.PreparedStatement(pool);
-	ps.input('price', sql.Decimal(12,2))
-	ps.input('tcgplayer_ID', sql.Int)
-	await ps.prepare(`UPDATE dbo.singleCardData SET TCGLow_Nonfoil = @price WHERE TCGPlayer_ID = @tcgplayer_ID`).catch(console.error);
-	const execute = await ps.execute({ price: price, tcgplayer_ID: tcgplayer_ID }).catch(console.error);
+	ps.input('price', sql.Decimal(12,2));
+	ps.input('tcgplayer_ID', sql.Int);
+	ps.input('datetime', sql.DateTime2(1));
+	if (nonfoil) {
+		await ps.prepare(`UPDATE dbo.singleCardData SET TCGLow_Nonfoil = @price, Date_updated = @datetime WHERE TCGPlayer_ID = @tcgplayer_ID`).catch(console.error);
+	} else if (foil) {
+		await ps.prepare(`UPDATE dbo.singleCardData SET TCGLow_Foil = @price, Date_updated = @datetime WHERE TCGPlayer_ID = @tcgplayer_ID`).catch(console.error);
+	}
+	const execute = await ps.execute({ price: price, tcgplayer_ID: tcgplayer_ID, datetime: Date() }).catch(console.error);
 	console.log(execute);
 	await ps.unprepare().catch(console.error);
 }
