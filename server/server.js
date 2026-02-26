@@ -75,15 +75,17 @@ async function addDelay(ms){
 
 async function retrievePrices() {
 	const ps = new sql.PreparedStatement(pool);
-	await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE (tcgplayer_ID IS NOT NULL AND Date_updated IS NULL) ORDER BY unique_ID ASC`);
+	// await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE (tcgplayer_ID IS NOT NULL AND Date_updated IS NULL) ORDER BY unique_ID ASC`);
+	await ps.prepare(`SELECT tcgplayer_ID FROM dbo.singleCardData WHERE tcgplayer_ID IS NOT NULL AND (Date_updated <= CAST('2026-02-26 02:36:00' AS datetime2) OR Date_updated IS NULL) ORDER BY unique_ID ASC`);
 	const tcgplayerIDs = await ps.execute().catch(console.error);
 	await ps.unprepare().catch(console.error);
 	console.log(tcgplayerIDs.recordset);
 	const page = await startBrowser();
 
 	// Playwright searches for element and content
-	for (let i = 0; i < tcgplayerIDs.recordset.length; i++) {
-		await page.goto(`https://www.tcgplayer.com/product/${tcgplayerIDs.recordset[i]['tcgplayer_ID']}`);
+	for (let i = 0; i < 1 /*tcgplayerIDs.recordset.length*/; i++) {
+		// await page.goto(`https://www.tcgplayer.com/product/${tcgplayerIDs.recordset[i]['tcgplayer_ID']}`);
+		await page.goto(`https://www.tcgplayer.com/product/545738`); // Test url
 		await page.waitForLoadState('domcontentloaded');
 		
 		const nmFirst = page.locator('[class="listing-item__listing-data"]')
@@ -97,20 +99,28 @@ async function retrievePrices() {
 		let price = await nmFirst.innerText();
 		price = price.slice(1);
 		const shipping = await nmFirst.locator(`+ span`).innerText();
-		let shipNum = shipping.split('').filter(ele => ele === '.' || ele === '0' || Number(ele)).join('');
+		console.log(shipping);
+		let shipNum;
+		if (shipping.includes('Free Shipping on Orders Over')) {
+			shipNum = '0';	
+		} else if (!shipping.includes('Free Shipping on Orders Over')) {
+			shipNum = shipping.split('').filter(ele => ele === '.' || ele === '0' || Number(ele)).join('');
+		} else {
+			shipNum = NaN; // Set shipNum to NaN to throw error and check which product has unaccounted for text
+		};
 		const total = Number((Number(price) + Number(shipNum)).toFixed(2));
 		console.log(total);
 		
-		const listingTitle = await page.locator('h1').innerText();
-		console.log(listingTitle);
+	// 	const listingTitle = await page.locator('h1').innerText();
+	// 	console.log(listingTitle);
 		
-		if (!listingTitle.includes('Foil')) {
-			updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], true, false);
-		} else if (listingTitle.includes('Foil')) {
-			updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], false, true);
-		}
+	// 	if (!listingTitle.includes('Foil')) {
+	// 		updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], true, false);
+	// 	} else if (listingTitle.includes('Foil')) {
+	// 		updatePriceDB(total, tcgplayerIDs.recordset[i]['tcgplayer_ID'], false, true);
+	// 	}
 
-		await addDelay(3000);
+	// 	await addDelay(3000);
 	}
 };
 retrievePrices();
