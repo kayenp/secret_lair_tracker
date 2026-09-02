@@ -1,6 +1,6 @@
 ### TCG price & inventory platform using Playwright for data collection and updating
 
-## Technologies used:
+### Technologies used:
 
 <p align="center">
     <img src="https://img.shields.io/static/v1?label=|&message=HTML5&color=23555f&style=plastic&logo=html5"/>
