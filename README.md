@@ -1,6 +1,17 @@
 ### TCG price & inventory platform using Playwright for data collection and updating
 
-## Tech used: ![HTML5 BADGE](https://img.shields.io/static/v1?label=|&message=HTML5&color=23555f&style=plastic&logo=html5)![CSS BADGE](https://img.shields.io/static/v1?label=|&message=CSS3&color=285f65&style=plastic&logo=css3)![JAVASCRIPT BADGE](https://img.shields.io/static/v1?label=|&message=JAVASCRIPT&color=3c7f5d&style=plastic&logo=javascript)![NODEJS BADGE](https://img.shields.io/static/v1?label=|&message=NODEJS&color=bbb111&style=plastic&logo=nodedotjs)![EXPRESS BADGE](https://img.shields.io/static/v1?label=|&message=EXPRESS&color=bbb111&style=plastic&logo=express)![SQL BADGE](https://img.shields.io/static/v1?label=|&message=T-SQL&color=bbb111&style=plastic&logo=sql)![PLAYWRIGHT BADGE](https://img.shields.io/static/v1?label=|&message=PLAYWRIGHT&color=bbb111&style=plastic&logo=playwright)
+## Technologies used:
+
+<p align="center">
+    <img src="https://img.shields.io/static/v1?label=|&message=HTML5&color=23555f&style=plastic&logo=html5"/>
+    <img src="https://img.shields.io/static/v1?label=|&message=CSS3&color=285f65&style=plastic&logo=css3"/>
+    <img src="https://img.shields.io/static/v1?label=|&message=JAVASCRIPT&color=3c7f5d&style=plastic&logo=javascr
+    <img src="https://img.shields.io/static/v1?label=|&message=NEXTJS&color=52985b&style=plastic&logo=nextdotjs"/>  
+    <img src="https://img.shields.io/static/v1?label=|&message=NODEJS&color=cdf998&style=plastic&logo=nodedotjs"/>
+    <img src="https://img.shields.io/static/v1?label=|&message=EXPRESS&color=98bf53&style=plastic&logo=express"/>
+    <img src="https://img.shields.io/static/v1?label=|&message=MICROSOFT-SQL-SERVER&color=98bf53&style=plastic&logo="/>
+    <img src="https://img.shields.io/static/v1?label=|&message=PLAYWRIGHT&color=bbb111&style=plastic&logo="/>
+</p>
 
 ## Installation
 
