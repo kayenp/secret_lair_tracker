@@ -17,7 +17,6 @@
 ```
 git clone https://github.com/kayenp/secret_lair_tracker.git
 ```
-2. Edit server.js file to 
 
 ## Optimizations and Lessons Learned:
 <br>
