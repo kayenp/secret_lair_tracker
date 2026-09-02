@@ -13,7 +13,6 @@
 
 ## Installation
 
-#### Clone repo
 ```
 git clone https://github.com/kayenp/secret_lair_tracker.git
 ```
