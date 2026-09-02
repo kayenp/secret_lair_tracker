@@ -13,7 +13,7 @@
 
 ## Installation
 
-Clone repo
+<p>Clone repo</p>
 ```
 git clone https://github.com/kayenp/secret_lair_tracker.git
 ```
